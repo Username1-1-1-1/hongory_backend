@@ -1,11 +1,9 @@
 # backend/langchain_chain.py
 import os
-from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
 from langchain.prompts import ChatPromptTemplate
 from langchain.chains import LLMChain
 
-load_dotenv()
 # ChatGPT 모델 초기화
 llm = ChatOpenAI(model="gpt-4", temperature=0, openai_api_key=os.getenv("OPENAI_API_KEY"))
 
