@@ -5,6 +5,9 @@ from fastapi.middleware.cors import CORSMiddleware
 app = FastAPI()
 app.include_router(api_router)
 
+@app.get("/")
+def root():
+    return {"message": "FastAPI is working!"}
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # 또는 ["http://localhost:3000"] (React 프론트 주소)
