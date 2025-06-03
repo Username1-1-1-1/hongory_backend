@@ -12,9 +12,3 @@ app.add_middleware(
     allow_methods=["*"],  # 여기에 "OPTIONS" 포함됨
     allow_headers=["*"],
 )
-if __name__ == "__main__":
-    import uvicorn
-    import os
-
-    port = int(os.environ.get("PORT", 8000))  # ✅ Railway는 여기서 PORT 넘김
-    uvicorn.run("main:app", host="0.0.0.0", port=port)
