@@ -5,3 +5,5 @@ openai
 httpx
 beautifulsoup4
 python-dotenv
+langchain
+langchain-openai
