@@ -6,8 +6,11 @@ tree = {"홍익대학교": {}}
 def update_tree(path, value):
     node = tree
     for key in path[:-1]:
+        # 중간 노드가 문자열이면 dict로 바꿔줌
+        if not isinstance(node.get(key), dict):
+            node[key] = {}
         node = node.setdefault(key, {})
-    
+
     leaf = path[-1]
 
     if leaf not in node:
@@ -19,6 +22,7 @@ def update_tree(path, value):
                 existing.append(value)
         elif existing != value:
             node[leaf] = [existing, value] if existing != value else existing
+
 
 
 
