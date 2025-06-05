@@ -4,6 +4,9 @@ from tree_state import update_tree, get_tree
 import json
 from langchain_chain import extract_tree_command
 from typing import List
+import logging
+
+logging.basicConfig(level=logging.INFO)
 
 router = APIRouter()
 
@@ -41,10 +44,11 @@ async def websocket_endpoint(websocket: WebSocket):
                 # LangChain 처리 및 트리 추출
                 parsed = json.loads(extract_tree_command(message))
                 path, value = parsed.get("path"), parsed.get("value")
+                
+                logging.info(f"📩 사용자 입력: {message}")
+                logging.info(f"📍 추출된 path: {path}")
+                logging.info(f"📦 추출된 value: {value}")
 
-                print(f"📩 사용자 입력: {message}")
-                print(f"📍 추출된 path: {path}")
-                print(f"📦 추출된 value: {value}")
                 if path:
                     update_tree(path, value)
                     await manager.broadcast({
