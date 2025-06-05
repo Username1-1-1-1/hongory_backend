@@ -51,6 +51,7 @@ async def websocket_endpoint(websocket: WebSocket):
                     # LangChain 처리 및 트리 추출
                     parsed = json.loads(extract_tree_command(message))
                     path, value = parsed.get("path"), parsed.get("value")
+                    logging.info(f"path = {path}, value = {value}")
 
                     if path:
                         update_tree(path, value)
