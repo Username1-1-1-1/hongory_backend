@@ -8,21 +8,27 @@ def update_tree(path, value):
     for key in path[:-1]:
         current = node.get(key)
         if not isinstance(current, dict):
-            # 중간 노드가 문자열이면 덮어쓰기 전에 log 남기거나 백업 가능
             node[key] = {}
         node = node[key]
 
     leaf = path[-1]
 
+    # ❗ leaf가 없으면 빈 dict 생성
     if leaf not in node:
-        node[leaf] = value
+        if value in [None, "", [], {}]:
+            node[leaf] = {}  # 의도적 존재 표시
+        else:
+            node[leaf] = value
     else:
         existing = node[leaf]
         if isinstance(existing, list):
-            if value not in existing:
+            if value and value not in existing:
                 existing.append(value)
-        elif existing != value:
-            node[leaf] = [existing, value] if existing != value else existing
+        elif isinstance(existing, dict):
+            pass  # 이미 dict라면 아무것도 안 함
+        elif existing != value and value not in [None, "", [], {}]:
+            node[leaf] = [existing, value]
+
 
 
 
