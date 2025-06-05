@@ -1,4 +1,4 @@
-from fastapi import APIRouter, WebSocket
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel
 from tree_state import update_tree, get_tree
 import json
@@ -6,7 +6,6 @@ from langchain_chain import extract_tree_command
 from typing import List
 
 router = APIRouter()
-connections = []
 
 class ChatRequest(BaseModel):
     message: str
@@ -22,7 +21,7 @@ class ConnectionManager:
 
     async def broadcast(self, message: str):
         for connection in self.active_connections:
-            await connection.send_text(message)
+            await connection.send_json(message)
 
 manager = ConnectionManager()
 
@@ -32,30 +31,29 @@ async def websocket_endpoint(websocket: WebSocket):
     await manager.connect(websocket)
     try:
         while True:
-            data = await websocket.receive_text()
-            await manager.broadcast(data)
-    except Exception as e:
-        print(f"WebSocket 오류: {e}")
-    finally:
+            raw_data = await websocket.receive_text()
+            data = json.loads(raw_data)
+            
+            if data.get("type") == "chat":
+                message = data.get("content")
+                name = data.get("name", "사용자")
+
+                # LangChain 처리 및 트리 추출
+                parsed = json.loads(extract_tree_command(message))
+                path, value = parsed.get("path"), parsed.get("value")
+
+                if path:
+                    update_tree(path, value)
+                    await manager.broadcast({
+                        "type": "tree_update",
+                        "tree": get_tree()
+                    })
+                # 채팅 응답 broadcast
+                await manager.broadcast({
+                    "type": "chat",
+                    "message": message,
+                    "name": name
+                })
+    except WebSocketDisconnect:
         await manager.disconnect(websocket)
 
-
-@router.post("/chat")
-async def handle_chat(data: ChatRequest):
-    user_input = data.message
-    result = extract_tree_command(user_input)
-    
-    print(result)
-    result = json.loads(result)
-    path = result.get("path")
-    value = result.get("value")
-    if not isinstance(path, list) or not path:
-        return{"tree": get_tree()}
-    update_tree(path, value)
-    await broadcast_tree()
-    return {"message": "트리 업데이트 완료", "tree": get_tree()}
-
-async def broadcast_tree():
-    tree_data = get_tree()  # tree_state.py의 함수
-    for conn in connections:
-        await conn.send_json({"type": "tree_update", "tree": tree_data})
