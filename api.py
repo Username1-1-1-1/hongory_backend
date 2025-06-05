@@ -42,18 +42,28 @@ async def websocket_endpoint(websocket: WebSocket):
         while True:
             try:
                 raw_data = await websocket.receive_text()
-                data = json.loads(raw_data)
                 
-                if data.get("type") == "chat":
-                    message = data.get("content")
-                    name = data.get("name", "사용자")
+            except RuntimeError as e:
+                logging.warning(f"⚠️ RuntimeError 발생: {e}")
+                break
+            try:
+                data = json.loads(raw_data)
+            except json.JSONDecodeError:
+                logging.warning(f"⚠️ 잘못된 JSON 형식: {raw_data}")
+                continue
+                
+            if data.get("type") == "chat":
+                message = data.get("content")
+                name = data.get("name", "사용자")
 
                     # LangChain 처리 및 트리 추출
-                    parsed = json.loads(extract_tree_command(message))
-                    path, value = parsed.get("path"), parsed.get("value")
-                    logging.info(f"path = {path}, value = {value}")
+                parsed = json.loads(extract_tree_command(message))
+                path, value = parsed.get("path"), parsed.get("value")
 
-                    if path:
+                logging.info(f"path = {path}, value = {value}")
+                    
+                if path:
+                    try:
                         update_tree(path, value)
                         await manager.broadcast({
                             "type": "tree_update",
@@ -64,16 +74,16 @@ async def websocket_endpoint(websocket: WebSocket):
                             "message": "트리가 업데이트되었습니다.",
                             "name": "🤖"
                         })
-                    # 채팅 응답 broadcast
+                    except Exception as e:
+                        logging.error(f"🚨 트리 업데이트 중 오류: {e}")
+                else:
+                    # 의미 없는 채팅도 broadcast에 포함
                     await manager.broadcast({
                         "type": "chat",
                         "message": message,
                         "name": name
                     })
-            except Exception as e:
-                    logging.error(f"⚠️ 메시지 처리 중 오류 발생: {e}")
-                    traceback.print_exc()
     except WebSocketDisconnect:
+        logging.info("🔌 WebSocket 연결 해제됨")
+    finally:
         await manager.disconnect(websocket)
-        logging.info("🔌 WebSocket 연결 종료됨")
-
