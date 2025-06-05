@@ -6,6 +6,7 @@ from langchain_chain import extract_tree_command
 from typing import List
 
 router = APIRouter()
+connections = []
 
 class ChatRequest(BaseModel):
     message: str
@@ -14,6 +15,7 @@ class ConnectionManager:
         self.active_connections: List[WebSocket] = []
 
     async def connect(self, websocket: WebSocket):
+        await websocket.accept()
         self.active_connections.append(websocket)
 
     async def disconnect(self, websocket: WebSocket):
@@ -27,7 +29,7 @@ manager = ConnectionManager()
 
 @router.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
-    await websocket.accept()
+    await websocket.accept()  # 🔥 이게 빠지면 403 나옴
     await manager.connect(websocket)
     try:
         while True:
@@ -40,7 +42,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
 
 @router.post("/chat")
-def handle_chat(data: ChatRequest):
+async def handle_chat(data: ChatRequest):
     user_input = data.message
     result = extract_tree_command(user_input)
     
@@ -51,4 +53,10 @@ def handle_chat(data: ChatRequest):
     if not isinstance(path, list) or not path:
         return{"tree": get_tree()}
     update_tree(path, value)
+    await broadcast_tree()
     return {"message": "트리 업데이트 완료", "tree": get_tree()}
+
+async def broadcast_tree():
+    tree_data = get_tree()  # tree_state.py의 함수
+    for conn in connections:
+        await conn.send_json({"type": "tree_update", "tree": tree_data})
