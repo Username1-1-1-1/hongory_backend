@@ -8,7 +8,10 @@ def update_tree(path, value):
     for key in path[:-1]:
         current = node.get(key)
         if not isinstance(current, dict):
+            old_value = current
             node[key] = {}
+            if old_value is not None:
+                node[key][old_value] = {}
         node = node[key]
 
     leaf = path[-1]
@@ -100,3 +103,4 @@ def refactor(tree: dict) -> dict:
             current[name] = merged
 
     return tree
+
