@@ -5,6 +5,7 @@ import json
 from langchain_chain import extract_tree_command
 from typing import List
 import logging
+import traceback
 
 logging.basicConfig(level=logging.INFO)
 
@@ -20,11 +21,16 @@ class ConnectionManager:
         self.active_connections.append(websocket)
 
     async def disconnect(self, websocket: WebSocket):
-        self.active_connections.remove(websocket)
+        if websocket in self.active_connections:
+            self.active_connections.remove(websocket)
 
     async def broadcast(self, message: str):
         for connection in self.active_connections:
-            await connection.send_json(message)
+            try:
+                await connection.send_json(message)
+            except Exception as e:
+                logging.error(f"📛 브로드캐스트 중 오류: {e}")
+                traceback.print_exc()
 
 manager = ConnectionManager()
 
@@ -34,40 +40,39 @@ async def websocket_endpoint(websocket: WebSocket):
     await manager.connect(websocket)
     try:
         while True:
-            raw_data = await websocket.receive_text()
-            data = json.loads(raw_data)
-            
-            if data.get("type") == "chat":
-                message = data.get("content")
-                name = data.get("name", "사용자")
-
-                # LangChain 처리 및 트리 추출
-                parsed = json.loads(extract_tree_command(message))
-                path, value = parsed.get("path"), parsed.get("value")
+            try:
+                raw_data = await websocket.receive_text()
+                data = json.loads(raw_data)
                 
-                logging.info(f"📩 사용자 입력: {message}")
-                logging.info(f"📍 추출된 path: {path}")
-                logging.info(f"📦 추출된 value: {value}")
+                if data.get("type") == "chat":
+                    message = data.get("content")
+                    name = data.get("name", "사용자")
 
-                if path:
-                    update_tree(path, value)
-                    await manager.broadcast({
-                        "type": "tree_update",
-                        "tree": get_tree()
-                    })
+                    # LangChain 처리 및 트리 추출
+                    parsed = json.loads(extract_tree_command(message))
+                    path, value = parsed.get("path"), parsed.get("value")
+
+                    if path:
+                        update_tree(path, value)
+                        await manager.broadcast({
+                            "type": "tree_update",
+                            "tree": get_tree()
+                        })
+                        await manager.broadcast({
+                            "type": "chat",
+                            "message": "트리가 업데이트되었습니다.",
+                            "name": "🤖"
+                        })
+                    # 채팅 응답 broadcast
                     await manager.broadcast({
                         "type": "chat",
-                        "message": "트리가 업데이트되었습니다.",
-                        "name": "🤖"
+                        "message": message,
+                        "name": name
                     })
-                # 채팅 응답 broadcast
-                await manager.broadcast({
-                    "type": "chat",
-                    "message": message,
-                    "name": name
-                })
-
+            except Exception as e:
+                    logging.error(f"⚠️ 메시지 처리 중 오류 발생: {e}")
+                    traceback.print_exc()
     except WebSocketDisconnect:
         await manager.disconnect(websocket)
-
+        logging.info("🔌 WebSocket 연결 종료됨")
 
