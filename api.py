@@ -14,7 +14,6 @@ class ConnectionManager:
         self.active_connections: List[WebSocket] = []
 
     async def connect(self, websocket: WebSocket):
-        await websocket.accept()
         self.active_connections.append(websocket)
 
     async def disconnect(self, websocket: WebSocket):
@@ -28,6 +27,7 @@ manager = ConnectionManager()
 
 @router.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
+    await websocket.accept()
     await manager.connect(websocket)
     try:
         while True:
