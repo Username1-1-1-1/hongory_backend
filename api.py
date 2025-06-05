@@ -41,10 +41,6 @@ async def websocket_endpoint(websocket: WebSocket):
                 # LangChain 처리 및 트리 추출
                 parsed = json.loads(extract_tree_command(message))
                 path, value = parsed.get("path"), parsed.get("value")
-
-                print(f"{message}")
-                print(f"{path}")
-                print(f"{value}")
                 
                 if path:
                     update_tree(path, value)
@@ -52,12 +48,19 @@ async def websocket_endpoint(websocket: WebSocket):
                         "type": "tree_update",
                         "tree": get_tree()
                     })
+                    await manager.broadcast({
+                        "type": "chat",
+                        "message": "트리가 업데이트되었습니다.",
+                        "name": "🤖"
+                    })
                 # 채팅 응답 broadcast
                 await manager.broadcast({
                     "type": "chat",
                     "message": message,
                     "name": name
                 })
+
     except WebSocketDisconnect:
         await manager.disconnect(websocket)
+
 
