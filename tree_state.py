@@ -7,7 +7,19 @@ def update_tree(path, value):
     node = tree
     for key in path[:-1]:
         node = node.setdefault(key, {})
-    node[path[-1]] = value
+    
+    leaf = path[-1]
+
+    if leaf not in node:
+        node[leaf] = value
+    else:
+        existing = node[leaf]
+        if isinstance(existing, list):
+            if value not in existing:
+                existing.append(value)
+        elif existing != value:
+            node[leaf] = [existing, value] if existing != value else existing
+
 
 
 def get_tree():
