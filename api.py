@@ -28,7 +28,6 @@ manager = ConnectionManager()
 
 @router.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
-    await websocket.accept()  # 🔥 이게 빠지면 403 나옴
     await manager.connect(websocket)
     try:
         while True:
