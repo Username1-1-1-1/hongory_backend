@@ -7,7 +7,8 @@ from typing import List
 import logging
 import traceback
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO,
+                    format="🪵 [%(asctime)s] %(levelname)s - %(message)s",)
 
 router = APIRouter()
 
@@ -40,11 +41,6 @@ async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()  # 🔥 이게 빠지면 403 나옴
     await manager.connect(websocket)
     username = websocket.query_params.get("name", "익명")  # 쿼리로 이름 전달받음
-    await websocket.send_json({
-        "type": "tree_update",
-        "tree": get_tree()
-    })
-
     await manager.broadcast({
         "type": "chat",
         "message": f"{username}님이 입장했습니다.",
