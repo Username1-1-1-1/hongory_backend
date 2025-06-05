@@ -31,13 +31,24 @@ class ConnectionManager:
             except Exception as e:
                 logging.error(f"📛 브로드캐스트 중 오류: {e}")
                 traceback.print_exc()
-
+    def count(self):
+        return len(self.active_connections)
 manager = ConnectionManager()
 
 @router.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()  # 🔥 이게 빠지면 403 나옴
     await manager.connect(websocket)
+    username = websocket.query_params.get("name", "익명")  # 쿼리로 이름 전달받음
+    await manager.broadcast({
+        "type": "chat",
+        "message": f"{username}님이 입장했습니다.",
+        "name": "🟢 시스템"
+    })
+    await manager.broadcast({
+        "type": "user_count",
+        "count": manager.count()
+    })
     try:
         while True:
             try:
@@ -87,3 +98,13 @@ async def websocket_endpoint(websocket: WebSocket):
         logging.info("🔌 WebSocket 연결 해제됨")
     finally:
         await manager.disconnect(websocket)
+
+        await manager.broadcast({
+            "type": "chat",
+            "message": f"{username}님이 퇴장했습니다.",
+            "name": "🔴 시스템"
+        })
+        await manager.broadcast({
+            "type": "user_count",
+            "count": manager.count()
+        })
