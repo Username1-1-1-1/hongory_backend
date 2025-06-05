@@ -42,6 +42,10 @@ async def websocket_endpoint(websocket: WebSocket):
                 parsed = json.loads(extract_tree_command(message))
                 path, value = parsed.get("path"), parsed.get("value")
 
+                print(f"{message}")
+                print(f"{path}")
+                print(f"{value}")
+                
                 if path:
                     update_tree(path, value)
                     await manager.broadcast({
