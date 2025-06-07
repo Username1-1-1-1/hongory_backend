@@ -92,6 +92,11 @@ async def websocket_endpoint(websocket: WebSocket):
                             "message": "트리가 업데이트되었습니다.",
                             "name": "🤖"
                         })
+                        await manager.broadcast({
+                          "type": "chat",
+                          "message": message,
+                          "name": name
+                      })
                     except Exception as e:
                         logging.error(f"🚨 트리 업데이트 중 오류: {e}")
                 else:
